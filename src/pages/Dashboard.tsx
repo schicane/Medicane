@@ -1,5 +1,6 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
+import { supabase } from '../supabaseClient'
 
 const stats = [
   { label: 'Total Records', value: '12', icon: '📄' },
@@ -14,6 +15,16 @@ const recentRecords = [
   { name: 'Amoxicillin Prescription', date: 'Jan 15, 2025', type: 'Prescription', source: 'Dr. Smith' },
 ]
 
+type Profile = {
+  full_name: string
+  age: number
+  city: string
+  phone: string
+  blood_type: string
+  emergency_contact: string
+  date_of_birth: string
+}
+
 type ExtractedData = {
   medication?: string
   dosage?: string
@@ -25,11 +36,34 @@ type ExtractedData = {
 
 export default function Dashboard() {
   const navigate = useNavigate()
+  const [profile, setProfile] = useState<Profile | null>(null)
   const [showModal, setShowModal] = useState(false)
   const [image, setImage] = useState<string | null>(null)
   const [loading, setLoading] = useState(false)
   const [extracted, setExtracted] = useState<ExtractedData | null>(null)
   const [error, setError] = useState<string | null>(null)
+
+  useEffect(() => {
+    const fetchProfile = async () => {
+      const { data: { user } } = await supabase.auth.getUser()
+      if (!user) { navigate('/login'); return }
+
+      const { data } = await supabase
+        .from('profiles')
+        .select('*')
+        .eq('user_id', user.id)
+        .single()
+
+      if (data) setProfile(data)
+      else navigate('/profile')
+    }
+    fetchProfile()
+  }, [])
+
+  const handleSignOut = async () => {
+    await supabase.auth.signOut()
+    navigate('/')
+  }
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
@@ -75,16 +109,51 @@ export default function Dashboard() {
         <h1 style={{ color: '#1a6ef5', fontSize: '22px', fontWeight: 700 }}>MediCANE</h1>
         <div style={{ display: 'flex', gap: '16px' }}>
           <button onClick={() => navigate('/vault')} style={{ background: 'transparent', border: '1px solid #1a6ef5', color: '#1a6ef5', padding: '8px 20px', borderRadius: '8px', cursor: 'pointer', fontWeight: 600 }}>Document Vault</button>
-          <button onClick={() => navigate('/')} style={{ background: '#f0f4ff', border: 'none', color: '#555', padding: '8px 20px', borderRadius: '8px', cursor: 'pointer' }}>Sign Out</button>
+          <button onClick={handleSignOut} style={{ background: '#f0f4ff', border: 'none', color: '#555', padding: '8px 20px', borderRadius: '8px', cursor: 'pointer' }}>Sign Out</button>
         </div>
       </nav>
 
       <div style={{ padding: '40px' }}>
-        <h2 style={{ fontSize: '26px', fontWeight: 800, marginBottom: '8px' }}>Welcome back, Alex 👋</h2>
+        {/* Welcome */}
+        <h2 style={{ fontSize: '26px', fontWeight: 800, marginBottom: '8px' }}>
+          Welcome back, {profile?.full_name || 'there'} 👋
+        </h2>
         <p style={{ color: '#777', marginBottom: '32px' }}>Here's your health summary</p>
 
+        {/* Profile Card */}
+        {profile && (
+          <div style={{ background: '#fff', borderRadius: '12px', padding: '24px', boxShadow: '0 2px 10px rgba(0,0,0,0.06)', marginBottom: '24px', display: 'flex', gap: '32px', flexWrap: 'wrap' }}>
+            <div>
+              <div style={{ fontSize: '13px', color: '#999', marginBottom: '4px' }}>Age</div>
+              <div style={{ fontWeight: 700 }}>{profile.age}</div>
+            </div>
+            <div>
+              <div style={{ fontSize: '13px', color: '#999', marginBottom: '4px' }}>Blood Type</div>
+              <div style={{ fontWeight: 700, color: '#e74c3c' }}>{profile.blood_type}</div>
+            </div>
+            <div>
+              <div style={{ fontSize: '13px', color: '#999', marginBottom: '4px' }}>City</div>
+              <div style={{ fontWeight: 700 }}>{profile.city}</div>
+            </div>
+            <div>
+              <div style={{ fontSize: '13px', color: '#999', marginBottom: '4px' }}>Phone</div>
+              <div style={{ fontWeight: 700 }}>{profile.phone}</div>
+            </div>
+            <div>
+              <div style={{ fontSize: '13px', color: '#999', marginBottom: '4px' }}>Emergency Contact</div>
+              <div style={{ fontWeight: 700 }}>{profile.emergency_contact}</div>
+            </div>
+            <button
+              onClick={() => navigate('/profile')}
+              style={{ marginLeft: 'auto', background: '#f0f4ff', border: 'none', color: '#1a6ef5', padding: '8px 18px', borderRadius: '8px', cursor: 'pointer', fontWeight: 600, fontSize: '14px' }}
+            >
+              Edit Profile
+            </button>
+          </div>
+        )}
+
         {/* Stats */}
-        <div style={{ display: 'flex', gap: '20px', flexWrap: 'wrap', marginBottom: '40px' }}>
+        <div style={{ display: 'flex', gap: '20px', flexWrap: 'wrap', marginBottom: '24px' }}>
           {stats.map((s) => (
             <div key={s.label} style={{ background: '#fff', borderRadius: '12px', padding: '24px', minWidth: '180px', boxShadow: '0 2px 10px rgba(0,0,0,0.06)', flex: 1 }}>
               <div style={{ fontSize: '28px', marginBottom: '8px' }}>{s.icon}</div>
@@ -94,14 +163,14 @@ export default function Dashboard() {
           ))}
         </div>
 
-        {/* Prescriptions Section */}
+        {/* Prescriptions */}
         <div style={{ background: '#fff', borderRadius: '12px', padding: '28px', boxShadow: '0 2px 10px rgba(0,0,0,0.06)', marginBottom: '24px' }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
             <div>
               <h3 style={{ fontWeight: 700, fontSize: '18px', marginBottom: '4px' }}>💊 Prescriptions</h3>
-              <p style={{ color: '#777', fontSize: '14px' }}>Upload a photo of a handwritten prescription to extract details</p>
+              <p style={{ color: '#777', fontSize: '14px' }}>Upload a photo of a handwritten prescription</p>
             </div>
-            <button onClick={() => setShowModal(true)} style={{ background: '#1a6ef5', color: '#fff', border: 'none', padding: '12px 24px', borderRadius: '8px', cursor: 'pointer', fontWeight: 700, fontSize: '15px' }}>
+            <button onClick={() => setShowModal(true)} style={{ background: '#1a6ef5', color: '#fff', border: 'none', padding: '12px 24px', borderRadius: '8px', cursor: 'pointer', fontWeight: 700 }}>
               + Upload Prescription
             </button>
           </div>
@@ -125,7 +194,7 @@ export default function Dashboard() {
         </div>
       </div>
 
-      {/* Modal */}
+      {/* Prescription Modal */}
       {showModal && (
         <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.4)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000 }}>
           <div style={{ background: '#fff', borderRadius: '16px', padding: '36px', width: '100%', maxWidth: '500px', boxShadow: '0 8px 40px rgba(0,0,0,0.15)' }}>
@@ -134,7 +203,6 @@ export default function Dashboard() {
               <button onClick={closeModal} style={{ background: 'none', border: 'none', fontSize: '22px', cursor: 'pointer', color: '#999' }}>✕</button>
             </div>
 
-            {/* Upload area */}
             <label style={{ display: 'block', border: '2px dashed #dde3f0', borderRadius: '12px', padding: '32px', textAlign: 'center', cursor: 'pointer', marginBottom: '16px', background: '#f9fbff' }}>
               {image ? (
                 <img src={image} alt="preview" style={{ maxWidth: '100%', maxHeight: '200px', borderRadius: '8px' }} />
@@ -160,7 +228,6 @@ export default function Dashboard() {
               </div>
             )}
 
-            {/* Extracted results */}
             {extracted && (
               <div style={{ background: '#f0f7ff', borderRadius: '12px', padding: '20px' }}>
                 <h4 style={{ fontWeight: 700, marginBottom: '14px', color: '#1a6ef5' }}>✅ Extracted Details</h4>
