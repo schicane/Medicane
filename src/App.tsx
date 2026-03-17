@@ -4,15 +4,28 @@ import Login from './pages/Login'
 import Dashboard from './pages/Dashboard'
 import Vault from './pages/Vault'
 import Profile from './pages/Profile'
+import ProtectedRoute from './components/ProtectedRoute'
 
 function App() {
   return (
     <Routes>
       <Route path="/" element={<Landing />} />
       <Route path="/login" element={<Login />} />
-      <Route path="/dashboard" element={<Dashboard />} />
-      <Route path="/vault" element={<Vault />} />
-      <Route path="/profile" element={<Profile />} />
+      <Route path="/dashboard" element={
+        <ProtectedRoute>
+          <Dashboard />
+        </ProtectedRoute>
+      } />
+      <Route path="/vault" element={
+        <ProtectedRoute>
+          <Vault />
+        </ProtectedRoute>
+      } />
+      <Route path="/profile" element={
+        <ProtectedRoute>
+          <Profile />
+        </ProtectedRoute>
+      } />
     </Routes>
   )
 }
