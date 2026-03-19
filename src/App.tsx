@@ -5,6 +5,7 @@ import Dashboard from './pages/Dashboard'
 import Vault from './pages/Vault'
 import Profile from './pages/Profile'
 import ProtectedRoute from './components/ProtectedRoute'
+import Provider from './pages/Provider'
 
 function App() {
   return (
@@ -26,6 +27,11 @@ function App() {
           <Profile />
         </ProtectedRoute>
       } />
+      <Route path="/provider" element={
+  <ProtectedRoute>
+    <Provider />
+  </ProtectedRoute>
+} />
     </Routes>
   )
 }

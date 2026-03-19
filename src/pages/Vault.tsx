@@ -10,6 +10,7 @@ type Document = {
   size: string
   file_path: string
   created_at: string
+  shared_with_doctor: string | null
 }
 
 const typeColors: Record<string, string> = {
@@ -28,7 +29,12 @@ export default function Vault() {
   const [uploading, setUploading] = useState(false)
   const [showUploadModal, setShowUploadModal] = useState(false)
   const [search, setSearch] = useState('')
-  const [form, setForm] = useState({ name: '', type: 'Lab', source: '' })
+  const [form, setForm] = useState({
+    name: '',
+    type: 'Lab',
+    source: '',
+    shared_with_doctor: '',
+  })
   const [file, setFile] = useState<File | null>(null)
   const [error, setError] = useState<string | null>(null)
 
@@ -83,12 +89,13 @@ export default function Vault() {
       source: form.source,
       size: `${(file.size / 1024 / 1024).toFixed(1)} MB`,
       file_path: filePath,
+      shared_with_doctor: form.shared_with_doctor || null,
     })
 
     if (dbError) setError(dbError.message)
     else {
       setShowUploadModal(false)
-      setForm({ name: '', type: 'Lab', source: '' })
+      setForm({ name: '', type: 'Lab', source: '', shared_with_doctor: '' })
       setFile(null)
       fetchDocuments()
     }
@@ -160,7 +167,14 @@ export default function Vault() {
                   <div style={{ fontSize: '28px' }}>📄</div>
                   <div>
                     <div style={{ fontWeight: 600, marginBottom: '4px' }}>{doc.name}</div>
-                    <div style={{ fontSize: '13px', color: '#777' }}>{doc.source} · {new Date(doc.created_at).toLocaleDateString()} · {doc.size}</div>
+                    <div style={{ fontSize: '13px', color: '#777' }}>
+                      {doc.source} · {new Date(doc.created_at).toLocaleDateString()} · {doc.size}
+                      {doc.shared_with_doctor && (
+                        <span style={{ marginLeft: '8px', background: '#f0f7ff', color: '#1a6ef5', padding: '2px 8px', borderRadius: '10px', fontSize: '12px', fontWeight: 600 }}>
+                          Shared with {doc.shared_with_doctor}
+                        </span>
+                      )}
+                    </div>
                   </div>
                 </div>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
@@ -180,7 +194,7 @@ export default function Vault() {
           <div style={{ background: '#fff', borderRadius: '16px', padding: '36px', width: '100%', maxWidth: '480px', boxShadow: '0 8px 40px rgba(0,0,0,0.15)' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px' }}>
               <h3 style={{ fontSize: '20px', fontWeight: 700 }}>Upload Document</h3>
-              <button onClick={() => setShowUploadModal(false)} style={{ background: 'none', border: 'none', fontSize: '22px', cursor: 'pointer', color: '#999' }}>✕</button>
+              <button onClick={() => { setShowUploadModal(false); setError(null); setFile(null) }} style={{ background: 'none', border: 'none', fontSize: '22px', cursor: 'pointer', color: '#999' }}>✕</button>
             </div>
 
             <label style={{ fontSize: '13px', color: '#555', fontWeight: 600 }}>Document Name</label>
@@ -195,6 +209,9 @@ export default function Vault() {
 
             <label style={{ fontSize: '13px', color: '#555', fontWeight: 600 }}>Source (Doctor/Hospital)</label>
             <input placeholder="e.g. Dr. Smith or City Hospital" value={form.source} onChange={(e) => setForm({ ...form, source: e.target.value })} style={{ width: '100%', padding: '12px', borderRadius: '8px', border: '1px solid #dde3f0', marginBottom: '16px', fontSize: '15px' }} />
+
+            <label style={{ fontSize: '13px', color: '#555', fontWeight: 600 }}>Share with Doctor ID <span style={{ color: '#999', fontWeight: 400 }}>(optional)</span></label>
+            <input placeholder="e.g. MED-4X7K" value={form.shared_with_doctor} onChange={(e) => setForm({ ...form, shared_with_doctor: e.target.value.toUpperCase() })} style={{ width: '100%', padding: '12px', borderRadius: '8px', border: '1px solid #dde3f0', marginBottom: '16px', fontSize: '15px' }} />
 
             <label style={{ display: 'block', border: '2px dashed #dde3f0', borderRadius: '12px', padding: '24px', textAlign: 'center', cursor: 'pointer', marginBottom: '16px', background: '#f9fbff' }}>
               {file ? (
